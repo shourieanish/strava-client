@@ -14,22 +14,25 @@ class StravaClient:
         self._client_secret = client_secret
 
     def get_access_token(self):
+        """
+        Get access token
+        """
         if self._updated_tokens:
             return self._updated_tokens['access_token']
         else:
             return self._tokens['access_token']
 
-    """
-    Get tokens from config file
-    """
     def get_tokens(self, config_path):
-       with open(config_path, 'r') as f:
+        """
+        Get tokens from config file
+        """
+        with open(config_path, 'r') as f:
            self._tokens = json.load(f)
 
-    """
-    Creating a new access token
-    """
     def create_access_token(self, auth_code):
+        """
+        Creating a new access token using an authentication code
+        """
 
         response = requests.post(
             url=self._oauth_uri,
@@ -42,12 +45,12 @@ class StravaClient:
         )
         response.raise_for_status()
 
-    """
-    Checking if access token is valid
-    """
     def authenticate(self):
+        """
+        Checking if access token is valid.
+        If access_token has expired, then use the refresh_token to get the new access_token
+        """
 
-        # If access_token has expired, then use the refresh_token to get the new access_token
         if self._tokens.get('expires_at', 0) < time.time():
             response = requests.post(
                 url = self._oauth_uri,
@@ -62,10 +65,10 @@ class StravaClient:
 
             self._updated_tokens = response.json()
 
-    """
-    Save tokens if updated
-    """
     def save_tokens(self, config_path):
+        """
+        Save tokens if updated
+        """
         if self._updated_tokens:
             with open(config_path, 'w') as f:
                 json.dump(self._updated_tokens, f)
@@ -79,6 +82,17 @@ class StravaClient:
                         description='',
                         trainer=0,
                         commute=0):
+        """
+        Creating an activity without a GPX file
+        :param name: activity name
+        :param type: activity type (e.g. "run")
+        :param start_date_local: start datetime
+        :param elapsed_time: activity time
+        :param distance: activity distance
+        :param description: text description of activity
+        :param trainer: boolean representing trainer activity
+        :param commute: boolean representing commute
+        """
         endpoint = 'activities'
         url = f'{self._base_url}/{endpoint}'
         header = {'Authorization': f"Bearer {self.get_access_token()}"}
@@ -112,6 +126,15 @@ class StravaClient:
                         data_type = 'gpx',
                         trainer=0,
                         commute=0):
+        """
+        :param file: gpx file contents
+        :param name: activity name
+        :param description: text description of activity
+        :param activity_type: type of activity (e.g. "run")
+        :param data_type: data type of file contents
+        :param trainer: boolean representing trainer activity
+        :param commute: boolean representing commute
+        """
 
         header = {'Authorization': f"Bearer {self.get_access_token()}"}
         payload = {
@@ -126,15 +149,14 @@ class StravaClient:
         endpoint = 'uploads'
         url = f'{self._base_url}/{endpoint}'
 
-        activity_file = file
-
         try:
             r = requests.post(url,
                               headers=header,
-                              files={'file': activity_file},
+                              files={'file': file},
                               params=payload)
+            r.raise_for_status()
             activity = r.json()
-            print(f"Created activity {activity['id']}")
+            print(f"Created activity upload {activity['id']}")
 
         except Exception as e:
             print(f"Unable to create the manual activity {payload}.")
