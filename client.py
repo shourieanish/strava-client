@@ -45,6 +45,9 @@ class StravaClient:
         )
         response.raise_for_status()
 
+        self._updated_tokens = response.json()
+
+
     def authenticate(self):
         """
         Checking if access token is valid.
